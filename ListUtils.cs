@@ -31,5 +31,21 @@ namespace TryashtarUtils.Utility
         {
             return items.Skip(count).Any();
         }
+
+        // Enumerable.Range() but for longs
+        public static IEnumerable<long> CreateRange(long start, long count)
+        {
+            var limit = start + count;
+            while (start < limit)
+            {
+                yield return start;
+                start++;
+            }
+        }
+
+        public static Dictionary<T, U> Copy<T, U>(this IReadOnlyDictionary<T, U> dict)
+        {
+            return dict.ToDictionary(x => x.Key, y => y.Value);
+        }
     }
 }

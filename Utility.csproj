@@ -41,8 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataUtils.cs" />
     <Compile Include="FilePath.cs" />
     <Compile Include="IOUtils.cs" />
+    <Compile Include="ListUtils.cs" />
     <Compile Include="LogicalStringComparer.cs" />
     <Compile Include="MathUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
