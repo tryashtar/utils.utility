@@ -46,20 +46,6 @@ namespace TryashtarUtils.Utility
             return time.ToString(@"h\:mm\:ss") + ending;
         }
 
-        // shuffle a list in-place
-        public static void Shuffle<T>(IList<T> list, Random random)
-        {
-            int n = list.Count;
-            while (n > 1)
-            {
-                n--;
-                int k = random.Next(n + 1);
-                var value = list[k];
-                list[k] = list[n];
-                list[n] = value;
-            }
-        }
-
         // random number in a range, but exclude one value from potentially being generated
         public static int RandomExcept(Random rand, int lower, int upper, int disallowed)
         {
