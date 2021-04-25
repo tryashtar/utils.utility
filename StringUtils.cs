@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,6 +59,18 @@ namespace TryashtarUtils.Utility
 
             result.Append(str, search, str.Length - search);
             return result.ToString();
+        }
+
+        public static IEnumerable<string> SplitLines(string text)
+        {
+            using (var sr = new StringReader(text))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    yield return line;
+                }
+            }
         }
     }
 }
