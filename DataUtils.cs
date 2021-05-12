@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace TryashtarUtils.Utility
 {
@@ -48,12 +49,12 @@ namespace TryashtarUtils.Utility
 
         public static string DoubleToString(double d)
         {
-            return d.ToString("0." + new string('#', 339));
+            return d.ToString("0." + new string('#', 339), CultureInfo.InvariantCulture);
         }
 
         public static string FloatToString(float f)
         {
-            return f.ToString("0." + new string('#', 339));
+            return f.ToString("0." + new string('#', 339), CultureInfo.InvariantCulture);
         }
 
         public static byte[] GetBytes(int value, bool little_endian = false)
