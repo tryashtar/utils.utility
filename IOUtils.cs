@@ -23,7 +23,7 @@ namespace TryashtarUtils.Utility
         private static IEnumerable<FilePath> ScanFiles(FilePath original_path, FilePath relative_deeper, IEnumerable<string> extensions, bool recursive, IEnumerable<FilePath> exclude)
         {
             string dir = String.Join(Path.DirectorySeparatorChar.ToString(), original_path.CombineWith(relative_deeper));
-            var valid = Directory.GetFiles(dir, "*.*")
+            var valid = Directory.GetFiles(dir)
                 .Where(x => extensions.Contains(Path.GetExtension(x).ToLower()))
                 .OrderBy(x => x, LogicalStringComparer.Instance) // sort entries by logical comparer
                 .Select(x => new FilePath(x));
