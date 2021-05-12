@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -68,6 +69,16 @@ namespace TryashtarUtils.Utility
                 while (File.Exists(full_path));
             }
             return full_path;
+        }
+
+        public static void OpenUrlInBrowser(string url)
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            };
+            Process.Start(psi);
         }
     }
 }
