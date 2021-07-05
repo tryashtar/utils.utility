@@ -9,16 +9,125 @@ using System.Threading.Tasks;
 
 namespace TryashtarUtils.Utility
 {
-    public abstract class Failable
+    public static class FailableFactory
     {
-        public abstract string ToStringSimple();
-        public abstract string ToStringDetailed();
+        public static IFailable Failure(Exception exc, string description)
+        {
+            return new Failable(exc, description);
+        }
 
-        public static string ExceptionMessage(Exception exception)
+        public static IFailable AggregateFailure(params Exception[] exceptions)
+        {
+            return Aggregate(exceptions.Select(x => Failure(x, null)).ToArray());
+        }
+
+        public static IFailable<T> Aggregate<T>(params IFailable<T>[] failures)
+        {
+            var flattened = failures.SelectMany(x => x.Flattened()).ToList();
+            var exception = new AggregateException(flattened.Select(x => x.Exception));
+            string description = String.Join(Environment.NewLine, flattened.Select(x => x.Description));
+            return new Failable<T>(default, exception, description, flattened);
+        }
+
+        public static IFailable Aggregate(params IFailable[] failures)
+        {
+            var flattened = failures.SelectMany(x => x.Flattened()).ToList();
+            var exception = new AggregateException(flattened.Select(x => x.Exception));
+            string description = String.Join(Environment.NewLine, flattened.Select(x => x.Description));
+            return new Failable(exception, description, flattened);
+        }
+    }
+
+    public interface IFailable
+    {
+        string ToStringSimple();
+        string ToStringDetailed();
+        string Description { get; }
+        Exception Exception { get; }
+        bool Failed { get; }
+        IEnumerable<IFailable> Flattened();
+    }
+
+    public interface IFailable<out T> : IFailable
+    {
+        new IEnumerable<IFailable<T>> Flattened();
+        T Result { get; }
+    }
+
+    public abstract class AbstractFailable : IFailable
+    {
+        protected Exception _Exception;
+        public Exception Exception => _Exception;
+        protected string _Description;
+        public string Description => _Description;
+        public bool Failed => _Exception != null;
+        protected IFailable[] Subfailures;
+        public bool IsAggregate => Subfailures.Any();
+
+        protected AbstractFailable()
+        {
+            Subfailures = Array.Empty<IFailable>();
+        }
+
+        protected AbstractFailable(Exception exc, string description) : this(exc, description, Array.Empty<IFailable>()) { }
+        protected AbstractFailable(Exception exc, string description, IEnumerable<IFailable> nested)
+        {
+            _Exception = exc;
+            _Description = description;
+            Subfailures = nested.ToArray();
+        }
+
+        public string ToStringSimple()
+        {
+            if (IsAggregate)
+            {
+                var messages = new HashSet<string>();
+                var summaries = new List<string>();
+                foreach (var item in Subfailures)
+                {
+                    if (messages.Add(item.Exception.Message))
+                        summaries.Add(item.ToStringSimple());
+                }
+                return String.Join(Environment.NewLine, summaries);
+            }
+            else
+            {
+                if (Failed)
+                    return ExceptionMessage(Exception);
+                else
+                    return $"{Description}: Operation succeeded";
+            }
+        }
+
+        public string ToStringDetailed()
+        {
+            if (IsAggregate)
+                return String.Join(Environment.NewLine + Environment.NewLine, Subfailures.Select(x => x.ToStringDetailed()));
+            else
+            {
+                if (Failed)
+                    return $"{Description}:{Environment.NewLine}{Exception}";
+                else
+                    return $"{Description}: Operation succeeded";
+            }
+        }
+
+        public IEnumerable<IFailable> Flattened()
+        {
+            if (IsAggregate)
+                return Subfailures;
+            return new[] { this };
+        }
+
+        protected static string ExceptionMessage(Exception exception)
         {
             string message = exception.Message;
             if (exception is AggregateException aggregate)
+            {
+                if (aggregate.InnerExceptions.Count == 1)
+                    return ExceptionMessage(aggregate.InnerExceptions[0]);
                 message += Environment.NewLine + String.Join(Environment.NewLine, aggregate.InnerExceptions.Select(ExceptionMessage));
+            }
             else
             {
                 if (exception is WebException web && web.Response != null)
@@ -35,9 +144,21 @@ namespace TryashtarUtils.Utility
         }
     }
 
-    public class Failable<T> : Failable
+    public class Failable : AbstractFailable
     {
-        public readonly Exception Exception;
+        public Failable(Action operation, string description)
+        {
+            _Description = description;
+            try { operation(); }
+            catch (Exception ex) { _Exception = ex; }
+        }
+
+        public Failable(Exception exc, string description, IEnumerable<IFailable> subfailures) : base(exc, description, subfailures) { }
+        public Failable(Exception exc, string description) : base(exc, description) { }
+    }
+
+    public class Failable<T> : AbstractFailable, IFailable<T>
+    {
         private readonly T _Result;
         public T Result
         {
@@ -48,98 +169,29 @@ namespace TryashtarUtils.Utility
                 return _Result;
             }
         }
-        public readonly string Description;
-        private readonly List<Failable<T>> Nested;
-        public ReadOnlyCollection<Failable<T>> SubFailures => Nested.AsReadOnly();
-        public bool Failed => Exception != null;
-        public bool IsAggregate => Nested.Any();
-        public Failable(Func<T> operation) : this(operation, null) { }
 
         public Failable(Func<T> operation, string description)
         {
-            Description = description;
-            Nested = new List<Failable<T>>();
+            _Description = description;
             try
-            {
-                _Result = operation();
-            }
+            { _Result = operation(); }
             catch (Exception ex)
-            {
-                Exception = ex;
-            }
+            { _Exception = ex; }
         }
 
-        public static Failable<T> Failure(Exception exc, string description)
-        {
-            return new Failable<T>(default, exc, description);
-        }
-
-        public static Failable<T> AggregateFailure(params Exception[] exceptions)
-        {
-            return Aggregate(exceptions.Select(x => Failure(x, null)).ToArray());
-        }
-
-        public static Failable<T> Aggregate(params Failable<T>[] failures)
-        {
-            var flattened = failures.SelectMany(x => x.GetRelevantFailures()).ToList();
-            var exception = new AggregateException(flattened.Select(x => x.Exception));
-            string description = String.Join("\n", flattened.Select(x => x.Description));
-            return new Failable<T>(default, exception, description, flattened);
-        }
-
-        private IEnumerable<Failable<T>> GetRelevantFailures()
-        {
-            if (IsAggregate)
-                return Nested;
-            return new[] { this };
-        }
-
-        private Failable(T result, Exception exception, string description, List<Failable<T>> subfailures = null)
+        public Failable(T result, Exception exc, string description, IEnumerable<IFailable<T>> subfailures) : base(exc, description, subfailures)
         {
             _Result = result;
-            Exception = exception;
-            Description = description;
-            Nested = subfailures ?? new List<Failable<T>>();
         }
 
-        public Failable<U> Cast<U>()
+        public Failable(T result, Exception exc, string description) : base(exc, description)
         {
-            return new Failable<U>((U)(object)_Result, Exception, Description, Nested.Select(x => x.Cast<U>()).ToList());
+            _Result = result;
         }
 
-        public override string ToStringSimple()
+        IEnumerable<IFailable<T>> IFailable<T>.Flattened()
         {
-            if (IsAggregate)
-            {
-                var messages = new HashSet<string>();
-                var summaries = new List<string>();
-                foreach (var item in Nested)
-                {
-                    if (messages.Add(item.Exception.Message))
-                        summaries.Add(item.ToStringSimple());
-                }
-                return String.Join("\n", summaries);
-            }
-            else
-            {
-                if (Failed)
-                    return ExceptionMessage(Exception);
-                else
-                    return $"{Description}: Operation succeeded";
-            }
-        }
-
-        public override string ToStringDetailed()
-        {
-            if (IsAggregate)
-                return String.Join("\n\n", Nested.Select(x => x.ToStringDetailed()));
-            else
-            {
-                if (Failed)
-                    return $"{Description}:\n{Exception}";
-                else
-                    return $"{Description}: Operation succeeded";
-            }
+            return base.Flattened().Cast<IFailable<T>>();
         }
     }
 }
