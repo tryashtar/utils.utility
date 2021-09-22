@@ -21,6 +21,11 @@ namespace TryashtarUtils.Utility
             return Aggregate(exceptions.Select(x => Failure(x, null)).ToArray());
         }
 
+        public static IFailable<T> Success<T>(T result, string description)
+        {
+            return new Failable<T>(result, null, description);
+        }
+
         public static IFailable<T> Aggregate<T>(params IFailable<T>[] failures)
         {
             var flattened = failures.SelectMany(x => x.Flattened()).ToList();
@@ -52,6 +57,8 @@ namespace TryashtarUtils.Utility
     {
         new IEnumerable<IFailable<T>> Flattened();
         T Result { get; }
+        IFailable<U> Then<U>(Func<T, U> further);
+        IFailable<U> Cast<U>();
     }
 
     public abstract class AbstractFailable : IFailable
@@ -132,10 +139,8 @@ namespace TryashtarUtils.Utility
             {
                 if (exception is WebException web && web.Response != null)
                 {
-                    using (var reader = new StreamReader(web.Response.GetResponseStream()))
-                    {
-                        message += Environment.NewLine + reader.ReadToEnd();
-                    }
+                    using var reader = new StreamReader(web.Response.GetResponseStream());
+                    message += Environment.NewLine + reader.ReadToEnd();
                 }
                 if (exception.InnerException != null)
                     message += Environment.NewLine + ExceptionMessage(exception.InnerException);
@@ -168,6 +173,19 @@ namespace TryashtarUtils.Utility
                     throw Exception;
                 return _Result;
             }
+        }
+
+        public IFailable<U> Then<U>(Func<T, U> further)
+        {
+            if (Failed)
+                return Cast<U>();
+            return new Failable<U>(() => further(this.Result), this.Description);
+        }
+
+        public IFailable<U> Cast<U>()
+        {
+            var result = this.Failed ? default : (U)(object)this.Result;
+            return new Failable<U>(result, this.Exception, this.Description, this.Subfailures.Cast<IFailable<T>>().Select(x => x.Cast<U>()));
         }
 
         public Failable(Func<T> operation, string description)
