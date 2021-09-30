@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -71,6 +72,14 @@ namespace TryashtarUtils.Utility
                     yield return line;
                 }
             }
+        }
+
+        public static T ParseUnderscoredEnum<T>(string str) where T : struct
+        {
+            str = str.ToLower().Replace('_', ' ');
+            var info = CultureInfo.CurrentCulture.TextInfo;
+            str = info.ToTitleCase(str).Replace(" ", String.Empty);
+            return Enum.Parse<T>(str);
         }
     }
 }
