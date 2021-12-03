@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -74,6 +75,14 @@ namespace TryashtarUtils.Utility
         public static string TimeSpan(TimeSpan time)
         {
             return time.TotalHours < 1 ? time.ToString(@"mm\:ss\.ff") : time.ToString(@"h\:mm\:ss\.ff");
+        }
+
+        public static T ParseUnderscoredEnum<T>(string str) where T : struct
+        {
+            str = str.ToLower().Replace('_', ' ');
+            var info = CultureInfo.CurrentCulture.TextInfo;
+            str = info.ToTitleCase(str).Replace(" ", String.Empty);
+            return Enum.Parse<T>(str);
         }
     }
 }
