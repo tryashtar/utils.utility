@@ -63,14 +63,17 @@ namespace TryashtarUtils.Utility
 
         public static IEnumerable<string> SplitLines(string text)
         {
-            using (var sr = new StringReader(text))
+            using var sr = new StringReader(text);
+            string line;
+            while ((line = sr.ReadLine()) != null)
             {
-                string line;
-                while ((line = sr.ReadLine()) != null)
-                {
-                    yield return line;
-                }
+                yield return line;
             }
+        }
+
+        public static string TimeSpan(TimeSpan time)
+        {
+            return time.TotalHours < 1 ? time.ToString(@"mm\:ss\.ff") : time.ToString(@"h\:mm\:ss\.ff");
         }
     }
 }
