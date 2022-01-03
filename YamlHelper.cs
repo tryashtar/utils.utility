@@ -75,7 +75,7 @@ namespace TryashtarUtils.Utility
             return parser(node);
         }
 
-        public static OutType Parse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : class
+        public static OutType Parse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser)
         {
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
@@ -98,17 +98,16 @@ namespace TryashtarUtils.Utility
 
         public static string String(this YamlNode node)
         {
-            if (node == null)
+            if (node is not YamlScalarNode scalar)
                 return null;
-            return ((YamlScalarNode)node).Value;
+            return scalar.Value;
         }
 
         public static int? Int(this YamlNode node)
         {
-            var result = String(node);
-            if (result == null)
+            if (node is not YamlScalarNode scalar)
                 return null;
-            return int.Parse(result);
+            return int.Parse(scalar.Value);
         }
 
         public static YamlNode Go(this YamlNode node, params string[] path)
