@@ -10,11 +10,19 @@ namespace TryashtarUtils.Utility
     {
         public static YamlNode ParseFile(string file_path)
         {
-            using var reader = new StreamReader(File.OpenRead(file_path));
-            var stream = new YamlStream();
-            stream.Load(reader);
-            var root = stream.Documents.SingleOrDefault()?.RootNode;
-            return root;
+            try
+            {
+                using var reader = new StreamReader(File.OpenRead(file_path));
+                var stream = new YamlStream();
+                stream.Load(reader);
+                var root = stream.Documents.SingleOrDefault()?.RootNode;
+                return root;
+            }
+            catch
+            {
+                Console.WriteLine($"Failed parsing YAML file {Path.GetFullPath(file_path)}");
+                throw;
+            }
         }
 
         public static void SaveToFile(YamlNode node, string file_path)
