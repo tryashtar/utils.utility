@@ -19,7 +19,7 @@ namespace TryashtarUtils.Utility
         }
         public static string Pluralize(int amount, string singular) => Pluralize(amount, singular, singular + "s");
 
-        // replaces the last space with a non-break space, preventing orhaning of the last word
+        // replaces the last space with a non-break space, preventing orphaning of the last word
         public static string DeOrphan(string input)
         {
             if (input == null)
@@ -75,6 +75,20 @@ namespace TryashtarUtils.Utility
         public static string TimeSpan(TimeSpan time)
         {
             return time.TotalHours < 1 ? time.ToString(@"mm\:ss\.ff") : time.ToString(@"h\:mm\:ss\.ff");
+        }
+
+        public static string MediaTimeSpan(TimeSpan time, int decimals = 0)
+        {
+            // create decimal part if requested
+            string ending = decimals > 0 ? time.ToString(new string('F', decimals)) : "";
+            // only include the dot if there will be digits after it
+            if (ending != "")
+                ending = "." + ending;
+            if (time.TotalMinutes < 10)
+                return time.ToString(@"m\:ss") + ending;
+            if (time.TotalHours < 1)
+                return time.ToString(@"mm\:ss") + ending;
+            return time.ToString(@"h\:mm\:ss") + ending;
         }
 
         public static T ParseUnderscoredEnum<T>(string str) where T : struct
