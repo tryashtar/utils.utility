@@ -20,4 +20,22 @@ namespace TryashtarUtils.Utility
             return StrCmpLogicalW(x, y);
         }
     }
+
+    public class LambdaComparer<TSource, TKey> : IComparer<TSource> where TKey : IComparable<TKey>
+    {
+        private readonly Func<TSource, TKey> Selector;
+        public LambdaComparer(Func<TSource, TKey> selector)
+        {
+            Selector = selector;
+        }
+
+        public int Compare(TSource x, TSource y)
+        {
+            var xKey = Selector(x);
+            var yKey = Selector(y);
+            if (xKey == null)
+                return yKey == null ? 0 : -1;
+            return Selector(x).CompareTo(Selector(y));
+        }
+    }
 }
