@@ -83,7 +83,14 @@ namespace TryashtarUtils.Utility
             return parser(node);
         }
 
-        public static OutType Parse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser)
+        public static OutType? NullableStructParse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : struct
+        {
+            if (node == null)
+                return null;
+            return parser(node);
+        }
+
+        public static OutType Parse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : class
         {
             if (node == null)
                 throw new ArgumentNullException(nameof(node));
