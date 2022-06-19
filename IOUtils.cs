@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -79,6 +80,32 @@ namespace TryashtarUtils.Utility
                 UseShellExecute = true
             };
             Process.Start(psi);
+        }
+
+        public static IEnumerable<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        {
+            if (Directory.Exists(sourceName))
+            {
+                var results = archive.CreateEntryFromDirectory(sourceName, entryName);
+                foreach (var item in results)
+                    yield return item;
+            }
+            else
+                yield return archive.CreateEntryFromFile(sourceName, entryName, compressionLevel);
+        }
+
+        public static IEnumerable<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        {
+            foreach (var file in Directory.GetFiles(sourceDirName))
+            {
+                yield return archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel);
+            }
+            foreach (var file in Directory.GetDirectories(sourceDirName))
+            {
+                var results = archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel);
+                foreach (var item in results)
+                    yield return item;
+            }
         }
     }
 }

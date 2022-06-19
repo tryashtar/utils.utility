@@ -12,7 +12,7 @@ namespace TryashtarUtils.Utility
         {
             try
             {
-                using var reader = new StreamReader(File.OpenRead(file_path));
+                using var reader = File.OpenText(file_path);
                 var stream = new YamlStream();
                 stream.Load(reader);
                 var root = stream.Documents.SingleOrDefault()?.RootNode;
@@ -29,6 +29,9 @@ namespace TryashtarUtils.Utility
         {
             var doc = new YamlDocument(node);
             var stream = new YamlStream(doc);
+            string dir = Path.GetDirectoryName(file_path);
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
             using var writer = File.CreateText(file_path);
             stream.Save(writer, false);
         }
