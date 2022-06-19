@@ -82,30 +82,28 @@ namespace TryashtarUtils.Utility
             Process.Start(psi);
         }
 
-        public static IEnumerable<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        public static List<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
+            var list = new List<ZipArchiveEntry>();
             if (Directory.Exists(sourceName))
-            {
-                var results = archive.CreateEntryFromDirectory(sourceName, entryName);
-                foreach (var item in results)
-                    yield return item;
-            }
+                list.AddRange(archive.CreateEntryFromDirectory(sourceName, entryName));
             else
-                yield return archive.CreateEntryFromFile(sourceName, entryName, compressionLevel);
+                list.Add(archive.CreateEntryFromFile(sourceName, entryName, compressionLevel));
+            return list;
         }
 
-        public static IEnumerable<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        public static List<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
+            var list = new List<ZipArchiveEntry>();
             foreach (var file in Directory.GetFiles(sourceDirName))
             {
-                yield return archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel);
+                list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
             foreach (var file in Directory.GetDirectories(sourceDirName))
             {
-                var results = archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel);
-                foreach (var item in results)
-                    yield return item;
+                list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
+            return list;
         }
     }
 }
