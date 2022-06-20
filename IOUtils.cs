@@ -82,6 +82,18 @@ namespace TryashtarUtils.Utility
             Process.Start(psi);
         }
 
+        public static void WipeDirectory(string path)
+        {
+            foreach (var file in Directory.GetFiles(path))
+            {
+                File.Delete(file);
+            }
+            foreach (var folder in Directory.GetDirectories(path))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+
         public static List<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
         {
             var list = new List<ZipArchiveEntry>();
@@ -104,6 +116,21 @@ namespace TryashtarUtils.Utility
                 list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
             return list;
+        }
+
+        public static void ExtractDirectoryEntry(this ZipArchive archive, string entryName, string destName, bool overwriteFiles)
+        {
+            entryName += '/';
+            foreach (var item in archive.Entries)
+            {
+                if (item.FullName.Replace('\\', '/').StartsWith(entryName))
+                {
+                    string relative = item.FullName[entryName.Length..];
+                    string file = Path.Combine(destName, relative);
+                    Directory.CreateDirectory(Path.GetDirectoryName(file));
+                    item.ExtractToFile(file, overwriteFiles);
+                }
+            }
         }
     }
 }
