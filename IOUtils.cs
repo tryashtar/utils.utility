@@ -84,13 +84,9 @@ namespace TryashtarUtils.Utility
 
         public static void WipeDirectory(string path)
         {
-            foreach (var file in Directory.GetFiles(path))
+            foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
             {
                 File.Delete(file);
-            }
-            foreach (var folder in Directory.GetDirectories(path))
-            {
-                Directory.Delete(folder, true);
             }
         }
 
