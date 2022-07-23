@@ -100,16 +100,18 @@ namespace TryashtarUtils.Utility
             return list;
         }
 
-        public static List<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+        public static List<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest, Func<string, bool> predicate = null)
         {
             var list = new List<ZipArchiveEntry>();
             foreach (var file in Directory.GetFiles(sourceDirName))
             {
-                list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
+                if (predicate == null || predicate(file))
+                    list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
             foreach (var file in Directory.GetDirectories(sourceDirName))
             {
-                list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
+                if (predicate == null || predicate(file))
+                    list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
             return list;
         }
