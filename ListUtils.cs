@@ -47,5 +47,20 @@ namespace TryashtarUtils.Utility
         {
             return dict.ToDictionary(x => x.Key, y => y.Value);
         }
+
+        public static int BinarySearch<T>(this IList<T> source, int index, int count, T item, IComparer<T> comparer)
+        {
+            return Array.BinarySearch<T>(source.Cast<T>().ToArray(), index, count, item, comparer);
+        }
+
+        public static int BinarySearch<T>(this IList<T> source, T item)
+        {
+            return BinarySearch(source, 0, source.Count, item, null);
+        }
+
+        public static int BinarySearch<T>(this IList<T> source, T item, IComparer<T> comparer)
+        {
+            return BinarySearch(source, 0, source.Count, item, comparer);
+        }
     }
 }
