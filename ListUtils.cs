@@ -62,5 +62,29 @@ namespace TryashtarUtils.Utility
         {
             return BinarySearch(source, 0, source.Count, item, comparer);
         }
+
+        public static IEnumerable<T> Flatten<T>(T[,] arr)
+        {
+            for (int y = 0; y < arr.GetLength(1); y++)
+            {
+                for (int x = 0; x < arr.GetLength(0); x++)
+                {
+                    yield return arr[x, y];
+                }
+            }
+        }
+
+        public static TTo[,] Map2D<TFrom, TTo>(TFrom[,] arr, Func<TFrom, TTo> func)
+        {
+            var result = new TTo[arr.GetLength(0), arr.GetLength(1)];
+            for (int y = 0; y < arr.GetLength(1); y++)
+            {
+                for (int x = 0; x < arr.GetLength(0); x++)
+                {
+                    result[x, y] = func(arr[x, y]);
+                }
+            }
+            return result;
+        }
     }
 }
