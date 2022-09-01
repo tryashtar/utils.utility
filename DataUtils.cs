@@ -56,6 +56,14 @@ namespace TryashtarUtils.Utility
             return f.ToString("0." + new string('#', 339), CultureInfo.InvariantCulture);
         }
 
+        public static byte[] GetBytes(short value, bool little_endian = false)
+        {
+            byte[] result = BitConverter.GetBytes(value);
+            if (BitConverter.IsLittleEndian != little_endian)
+                Array.Reverse(result);
+            return result;
+        }
+
         public static byte[] GetBytes(int value, bool little_endian = false)
         {
             byte[] result = BitConverter.GetBytes(value);
@@ -64,15 +72,44 @@ namespace TryashtarUtils.Utility
             return result;
         }
 
-        public static int ToInt32(params byte[] bytes)
+        public static byte[] GetBytes(long value, bool little_endian = false)
         {
-            if (BitConverter.IsLittleEndian)
+            byte[] result = BitConverter.GetBytes(value);
+            if (BitConverter.IsLittleEndian != little_endian)
+                Array.Reverse(result);
+            return result;
+        }
+
+        public static int ToInt32(byte[] bytes, int index = 0, bool little_endian = false) => ToInt32(new ReadOnlySpan<byte>(bytes, index, sizeof(int)), little_endian);
+        public static int ToInt32(ReadOnlySpan<byte> bytes, bool little_endian = false)
+        {
+            if (BitConverter.IsLittleEndian != little_endian)
             {
-                byte[] swap = bytes.Take(4).Reverse().ToArray();
+                var swap = new byte[bytes.Length];
+                for (int i = 0; i < swap.Length; i++)
+                {
+                    swap[i] = bytes[bytes.Length - i - 1];
+                }
                 return BitConverter.ToInt32(swap, 0);
             }
             else
-                return BitConverter.ToInt32(bytes, 0);
+                return BitConverter.ToInt32(bytes);
+        }
+
+        public static long ToInt64(byte[] bytes, int index = 0, bool little_endian = false) => ToInt64(new ReadOnlySpan<byte>(bytes, index, sizeof(long)), little_endian);
+        public static long ToInt64(ReadOnlySpan<byte> bytes, bool little_endian = false)
+        {
+            if (BitConverter.IsLittleEndian != little_endian)
+            {
+                var swap = new byte[bytes.Length];
+                for (int i = 0; i < swap.Length; i++)
+                {
+                    swap[i] = bytes[bytes.Length - i - 1];
+                }
+                return BitConverter.ToInt64(swap, 0);
+            }
+            else
+                return BitConverter.ToInt64(bytes);
         }
 
         public static byte[] ToByteArray(params short[] shorts)
