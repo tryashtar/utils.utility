@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TryashtarUtils.Utility
@@ -106,12 +107,12 @@ namespace TryashtarUtils.Utility
             foreach (var file in Directory.GetFiles(sourceDirName))
             {
                 if (predicate == null || predicate(file))
-                    list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
+                     list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
             }
             foreach (var file in Directory.GetDirectories(sourceDirName))
             {
                 if (predicate == null || predicate(file))
-                    list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
+                    list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel, predicate));
             }
             return list;
         }
@@ -129,6 +130,24 @@ namespace TryashtarUtils.Utility
                     item.ExtractToFile(file, overwriteFiles);
                 }
             }
+        }
+
+        private static readonly string[] ReservedFilenames = new[]
+        {
+            "CON", "PRN", "AUX", "CLOCK$", "NUL", "COM0", "COM1", "COM2", "COM3", "COM4",
+            "COM5", "COM6", "COM7", "COM8", "COM9", "LPT0", "LPT1", "LPT2", "LPT3", "LPT4",
+            "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+        };
+        public static string MakeFilesafe(string name)
+        {
+            var regex = new Regex($"[{new String(Path.GetInvalidFileNameChars())}]+");
+            var result = regex.Replace(name, "_");
+            foreach (var reserved in ReservedFilenames)
+            {
+                var reservedWordPattern = string.Format("^{0}\\.", reserved);
+                result = Regex.Replace(result, $"^{reserved}\\.", "_" + reserved, RegexOptions.IgnoreCase);
+            }
+            return result;
         }
     }
 }
