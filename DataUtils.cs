@@ -80,7 +80,7 @@ namespace TryashtarUtils.Utility
             return result;
         }
 
-        public static int ToInt32(byte[] bytes, int index = 0, bool little_endian = false) => ToInt32(new ReadOnlySpan<byte>(bytes, index, sizeof(int)), little_endian);
+        public static int ToInt32(byte[] bytes, int index = 0, bool little_endian = false) => ToInt32(bytes.AsSpan().Slice(index, sizeof(int)), little_endian);
         public static int ToInt32(ReadOnlySpan<byte> bytes, bool little_endian = false)
         {
             if (BitConverter.IsLittleEndian != little_endian)
@@ -96,7 +96,7 @@ namespace TryashtarUtils.Utility
                 return BitConverter.ToInt32(bytes);
         }
 
-        public static long ToInt64(byte[] bytes, int index = 0, bool little_endian = false) => ToInt64(new ReadOnlySpan<byte>(bytes, index, sizeof(long)), little_endian);
+        public static long ToInt64(byte[] bytes, int index = 0, bool little_endian = false) => ToInt64(bytes.AsSpan().Slice(index, sizeof(long)), little_endian);
         public static long ToInt64(ReadOnlySpan<byte> bytes, bool little_endian = false)
         {
             if (BitConverter.IsLittleEndian != little_endian)
@@ -164,6 +164,14 @@ namespace TryashtarUtils.Utility
                 longs[index] = BitConverter.ToInt64(bytes, index * sizeof(long));
             }
             return longs;
+        }
+
+        public static T[] ConcatArrays<T>(ReadOnlySpan<T> arr1, ReadOnlySpan<T> arr2)
+        {
+            var result = new T[arr1.Length + arr2.Length];
+            arr1.CopyTo(result);
+            arr2.CopyTo(result[arr1.Length..]);
+            return result;
         }
     }
 }
