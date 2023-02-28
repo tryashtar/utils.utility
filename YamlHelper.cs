@@ -100,14 +100,14 @@ namespace TryashtarUtils.Utility
             return parser(node);
         }
 
-        public static T ToEnum<T>(this YamlNode node, T def) where T : struct
+        public static T ToEnum<T>(this YamlNode node, T def) where T : struct, Enum
         {
             if (node == null)
                 return def;
             return StringUtils.ParseUnderscoredEnum<T>(node.String());
         }
 
-        public static T? ToEnum<T>(this YamlNode node) where T : struct
+        public static T? ToEnum<T>(this YamlNode node) where T : struct, Enum
         {
             if (node == null)
                 return null;
@@ -126,6 +126,13 @@ namespace TryashtarUtils.Utility
             if (node is not YamlScalarNode scalar)
                 return null;
             return int.Parse(scalar.Value);
+        }
+        
+        public static bool? Bool(this YamlNode node)
+        {
+            if (node is not YamlScalarNode scalar)
+                return null;
+            return bool.Parse(scalar.Value);
         }
 
         public static YamlNode Go(this YamlNode node, params string[] path)

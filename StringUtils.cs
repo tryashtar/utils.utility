@@ -91,7 +91,7 @@ namespace TryashtarUtils.Utility
             return time.ToString(@"h\:mm\:ss") + ending;
         }
 
-        public static T ParseUnderscoredEnum<T>(string str) where T : struct
+        public static T ParseUnderscoredEnum<T>(string str) where T : struct, Enum
         {
             return Enum.Parse<T>(SnakeToPascal(str));
         }
