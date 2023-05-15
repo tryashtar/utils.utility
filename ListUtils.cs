@@ -39,12 +39,12 @@ public static class ListUtils
         }
     }
 
-    public static Dictionary<T, U> Copy<T, U>(this IReadOnlyDictionary<T, U> dict)
+    public static Dictionary<TKey, TValue> Copy<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dict) where TKey : notnull
     {
         return dict.ToDictionary(x => x.Key, y => y.Value);
     }
 
-    public static int BinarySearch<T>(this IList<T> source, int index, int count, T item, IComparer<T> comparer)
+    public static int BinarySearch<T>(this IList<T> source, int index, int count, T item, IComparer<T>? comparer)
     {
         return Array.BinarySearch<T>(source.Cast<T>().ToArray(), index, count, item, comparer);
     }
@@ -54,7 +54,7 @@ public static class ListUtils
         return BinarySearch(source, 0, source.Count, item, null);
     }
 
-    public static int BinarySearch<T>(this IList<T> source, T item, IComparer<T> comparer)
+    public static int BinarySearch<T>(this IList<T> source, T item, IComparer<T>? comparer)
     {
         return BinarySearch(source, 0, source.Count, item, comparer);
     }

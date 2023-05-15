@@ -11,14 +11,14 @@ namespace TryashtarUtils.Utility;
 
 public static class YamlParser
 {
-    public static T Parse<T>(YamlNode node)
+    public static T? Parse<T>(YamlNode node)
     {
-        return (T)Parse(node, typeof(T));
+        return (T?)Parse(node, typeof(T));
     }
 
     public static YamlNode Serialize<T>(T item)
     {
-        return SerializeObject(item);
+        return SerializeObject(item!);
     }
 
     private static YamlNode SerializeObject(object obj)
@@ -28,7 +28,7 @@ public static class YamlParser
             return new YamlScalarNode(s);
         var type = obj.GetType();
         if (type.IsEnum)
-            return new YamlScalarNode(StringUtils.PascalToSnake(obj.ToString()));
+            return new YamlScalarNode(StringUtils.PascalToSnake(((Enum)obj).ToString()));
         if (type.IsPrimitive)
             return new YamlScalarNode(obj.ToString());
         // actual dictionary
@@ -40,8 +40,10 @@ public static class YamlParser
             {
                 node.Add(Serialize(key), Serialize(dict[key]));
             }
+
             return node;
         }
+
         // actual list
         if (typeof(IEnumerable).IsAssignableFrom(type))
         {
@@ -51,8 +53,10 @@ public static class YamlParser
             {
                 node.Add(Serialize(item));
             }
+
             return node;
         }
+
         // special case
         var root = FindRoot(type);
         if (root != null)
@@ -65,14 +69,17 @@ public static class YamlParser
                 return sn;
             return Serialize(serialized);
         }
+
         // member-wise object
         var result = new YamlMappingNode();
-        foreach (MemberInfo member in type.GetFields(PublicBinding).Cast<MemberInfo>().Concat(type.GetProperties(PublicBinding)))
+        foreach (var member in type.GetFields(PublicBinding).Cast<MemberInfo>()
+                     .Concat(type.GetProperties(PublicBinding)))
         {
             var val = GetVal(member, obj);
             if (val != null)
                 result.Add(ConvertName(member), Serialize(val));
         }
+
         return result;
     }
 
@@ -80,7 +87,7 @@ public static class YamlParser
     private const BindingFlags PublicBinding = BindingFlags.Instance | BindingFlags.Public;
 
     // methods to generalize shared concepts across MemberInfo
-    private static object GetVal(MemberInfo info, object obj)
+    private static object? GetVal(MemberInfo info, object obj)
     {
         if (info is FieldInfo f)
             return f.GetValue(obj);
@@ -91,7 +98,7 @@ public static class YamlParser
         throw new InvalidOperationException();
     }
 
-    private static void SetVal(MemberInfo info, object obj, object value)
+    private static void SetVal(MemberInfo info, object obj, object? value)
     {
         if (info is FieldInfo f)
             f.SetValue(obj, value);
@@ -155,7 +162,7 @@ public static class YamlParser
         return null;
     }
 
-    private static object Parse(YamlNode node, Type type)
+    private static object? Parse(YamlNode node, Type type)
     {
         // assertion, without this we'll try to member-wise construct System.Object which is a sign something is wrong
         if (type == typeof(object))
@@ -164,21 +171,29 @@ public static class YamlParser
         if (type == typeof(string))
             return ((YamlScalarNode)node).Value;
         if (type.IsEnum)
-            return Enum.Parse(type, StringUtils.SnakeToPascal(((YamlScalarNode)node).Value));
+        {
+            var text = ((YamlScalarNode)node).Value;
+            return text == null ? null : Enum.Parse(type, StringUtils.SnakeToPascal(text));
+        }
+
         if (type.IsPrimitive)
-            return TypeDescriptor.GetConverter(type).ConvertFrom(((YamlScalarNode)node).Value);
+        {
+            var text = ((YamlScalarNode)node).Value;
+            return text == null ? null : TypeDescriptor.GetConverter(type).ConvertFrom(text);
+        }
+
         // special case
         var parser = FindParser(type);
-        object result;
+        object? result;
         if (parser != null)
         {
             // allow parsers to parse node directly, or convert it to another type first
             var param_type = parser.GetParameters()[0].ParameterType;
-            object[] parameters;
+            object?[] parameters;
             if (typeof(YamlNode).IsAssignableFrom(param_type))
-                parameters = new[] { node };
+                parameters = new object?[] { node };
             else
-                parameters = new[] { Parse(node, param_type) };
+                parameters = new object?[] { Parse(node, param_type) };
             // if parser is constructor, use it
             if (parser is ConstructorInfo c)
                 return c.Invoke(parameters);
@@ -187,46 +202,58 @@ public static class YamlParser
             parser.Invoke(result, parameters);
             return result;
         }
+
         if (type.IsArray)
-            result = Activator.CreateInstance(typeof(List<>).MakeGenericType(type.GetElementType()));
+            result = Activator.CreateInstance(typeof(List<>).MakeGenericType(type.GetElementType()!));
         else
             result = Activator.CreateInstance(type);
+        if (result == null)
+            return null;
         var root = FindRoot(type);
         if (root != null)
         {
             SetVal(root, result, Parse(node, TypeOf(root)));
             return result;
         }
+
         // actual dictionary
         if (result is IDictionary dict)
         {
             var args = type.GetGenericArguments();
             foreach (var (key, value) in (YamlMappingNode)node)
             {
-                dict.Add(Parse(key, args[0]), Parse(value, args[1]));
+                var k = Parse(key, args[0]);
+                if (k != null)
+                    dict.Add(k, Parse(value, args[1]));
             }
+
             return dict;
         }
+
         // actual list
-        var collection_type = type.GetInterfaces().FirstOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ICollection<>));
+        var collection_type = type.GetInterfaces()
+            .FirstOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ICollection<>));
         if (collection_type != null)
         {
             dynamic list = result;
-            var arg = type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
+            var arg = type.IsArray ? type.GetElementType()! : type.GetGenericArguments()[0];
             foreach (var item in (YamlSequenceNode)node)
             {
-                dynamic parsed = Parse(item, arg);
+                dynamic? parsed = Parse(item, arg);
                 list.Add(parsed);
             }
+
             if (type.IsArray)
                 return list.ToArray();
             return list;
         }
+
         // member-wise object
         var map = (YamlMappingNode)node;
         var unused_nodes = map.Children.Keys.ToHashSet();
         var optional = type.GetCustomAttribute<OptionalFieldsAttribute>();
-        var fields = type.GetFields(PublicBinding).Cast<MemberInfo>().Concat(type.GetProperties(PublicBinding).Where(x => x.CanWrite));
+        var fields = type.GetFields(PublicBinding).Cast<MemberInfo>()
+            .Concat(type.GetProperties(PublicBinding).Where(x => x.CanWrite));
         foreach (var field in fields)
         {
             string name = ConvertName(field);
@@ -239,11 +266,14 @@ public static class YamlParser
                     SetVal(field, result, Activator.CreateInstance(TypeOf(field)));
                 continue;
             }
+
             SetVal(field, result, Parse(subnode, TypeOf(field)));
             unused_nodes.Remove(name);
         }
+
         if (unused_nodes.Count > 0)
-            throw new InvalidDataException($"While parsing {type.Name}, found unused nodes: {String.Join(", ", unused_nodes)}");
+            throw new InvalidDataException(
+                $"While parsing {type.Name}, found unused nodes: {String.Join(", ", unused_nodes)}");
         return result;
     }
 
@@ -255,6 +285,7 @@ public static class YamlParser
             if (att != null)
                 return member;
         }
+
         return null;
     }
 
@@ -267,15 +298,25 @@ public static class YamlParser
     public class OptionalFieldsAttribute : Attribute
     {
         public readonly bool InitializeWhenNull;
+
         public OptionalFieldsAttribute(bool init_nulls = false)
         {
             InitializeWhenNull = init_nulls;
         }
     }
+
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
-    public class RootAttribute : Attribute { }
+    public class RootAttribute : Attribute
+    {
+    }
+
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor)]
-    public class ParserAttribute : Attribute { }
+    public class ParserAttribute : Attribute
+    {
+    }
+
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property)]
-    public class SerializerAttribute : Attribute { }
+    public class SerializerAttribute : Attribute
+    {
+    }
 }

@@ -11,17 +11,20 @@ namespace TryashtarUtils.Utility;
 public static class IOUtils
 {
     // GetFiles but with multiple allowed file extensions
-    public static IEnumerable<FilePath> GetValidFiles(FilePath directory, IEnumerable<string> extensions, bool recursive)
+    public static IEnumerable<FilePath> GetValidFiles(FilePath directory, IEnumerable<string> extensions,
+        bool recursive)
     {
         return ScanFiles(directory, new FilePath(), extensions, recursive, new FilePath[0]);
     }
 
-    public static IEnumerable<FilePath> GetValidFiles(FilePath directory, IEnumerable<string> extensions, bool recursive, IEnumerable<FilePath> exclude)
+    public static IEnumerable<FilePath> GetValidFiles(FilePath directory, IEnumerable<string> extensions,
+        bool recursive, IEnumerable<FilePath> exclude)
     {
         return ScanFiles(directory, new FilePath(), extensions, recursive, exclude);
     }
 
-    private static IEnumerable<FilePath> ScanFiles(FilePath original_path, FilePath relative_deeper, IEnumerable<string> extensions, bool recursive, IEnumerable<FilePath> exclude)
+    private static IEnumerable<FilePath> ScanFiles(FilePath original_path, FilePath relative_deeper,
+        IEnumerable<string> extensions, bool recursive, IEnumerable<FilePath> exclude)
     {
         string dir = String.Join(Path.DirectorySeparatorChar.ToString(), original_path.CombineWith(relative_deeper));
         var valid = Directory.GetFiles(dir)
@@ -41,6 +44,7 @@ public static class IOUtils
                 }
             }
         }
+
         return valid;
     }
 
@@ -65,9 +69,9 @@ public static class IOUtils
             do
             {
                 full_path = Path.Combine(path, String.Format("{0} ({1}){2}", no_extension, (n++), ext));
-            }
-            while (File.Exists(full_path));
+            } while (File.Exists(full_path));
         }
+
         return full_path;
     }
 
@@ -89,7 +93,8 @@ public static class IOUtils
         }
     }
 
-    public static List<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest)
+    public static List<ZipArchiveEntry> CreateEntryFromAny(this ZipArchive archive, string sourceName, string entryName,
+        CompressionLevel compressionLevel = CompressionLevel.Fastest)
     {
         var list = new List<ZipArchiveEntry>();
         if (Directory.Exists(sourceName))
@@ -99,23 +104,30 @@ public static class IOUtils
         return list;
     }
 
-    public static List<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName, string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest, Func<string, bool> predicate = null)
+    public static List<ZipArchiveEntry> CreateEntryFromDirectory(this ZipArchive archive, string sourceDirName,
+        string entryName, CompressionLevel compressionLevel = CompressionLevel.Fastest,
+        Func<string, bool>? predicate = null)
     {
         var list = new List<ZipArchiveEntry>();
         foreach (var file in Directory.GetFiles(sourceDirName))
         {
             if (predicate == null || predicate(file))
-                list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel));
+                list.Add(archive.CreateEntryFromFile(file, Path.Combine(entryName, Path.GetFileName(file)),
+                    compressionLevel));
         }
+
         foreach (var file in Directory.GetDirectories(sourceDirName))
         {
             if (predicate == null || predicate(file))
-                list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)), compressionLevel, predicate));
+                list.AddRange(archive.CreateEntryFromDirectory(file, Path.Combine(entryName, Path.GetFileName(file)),
+                    compressionLevel, predicate));
         }
+
         return list;
     }
 
-    public static void ExtractDirectoryEntry(this ZipArchive archive, string entryName, string destName, bool overwriteFiles)
+    public static void ExtractDirectoryEntry(this ZipArchive archive, string entryName, string destName,
+        bool overwriteFiles)
     {
         entryName += '/';
         foreach (var item in archive.Entries)
@@ -124,7 +136,9 @@ public static class IOUtils
             {
                 string relative = item.FullName[entryName.Length..];
                 string file = Path.Combine(destName, relative);
-                Directory.CreateDirectory(Path.GetDirectoryName(file));
+                string parent = Path.GetDirectoryName(file);
+                if (parent != null)
+                    Directory.CreateDirectory(parent);
                 item.ExtractToFile(file, overwriteFiles);
             }
         }
@@ -136,6 +150,7 @@ public static class IOUtils
         "COM5", "COM6", "COM7", "COM8", "COM9", "LPT0", "LPT1", "LPT2", "LPT3", "LPT4",
         "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     };
+
     public static string MakeFilesafe(string name)
     {
         var regex = new Regex($"[{new String(Path.GetInvalidFileNameChars())}]+");
@@ -145,6 +160,7 @@ public static class IOUtils
             var reservedWordPattern = string.Format("^{0}\\.", reserved);
             result = Regex.Replace(result, $"^{reserved}\\.", "_" + reserved, RegexOptions.IgnoreCase);
         }
+
         return result;
     }
 }

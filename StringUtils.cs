@@ -18,9 +18,9 @@ public static class StringUtils
     public static string Pluralize(int amount, string singular) => Pluralize(amount, singular, singular + "s");
 
     // replaces the last space with a non-break space, preventing orphaning of the last word
-    public static string DeOrphan(string input)
+    public static string DeOrphan(string? input)
     {
-        if (input == null)
+        if (input is null)
             return "";
         int place = input.LastIndexOf(' ');
         if (place == -1)
@@ -63,8 +63,7 @@ public static class StringUtils
     public static IEnumerable<string> SplitLines(string text)
     {
         using var sr = new StringReader(text);
-        string line;
-        while ((line = sr.ReadLine()) != null)
+        while (sr.ReadLine() is { } line)
         {
             yield return line;
         }

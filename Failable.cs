@@ -8,7 +8,7 @@ namespace TryashtarUtils.Utility;
 
 public static class FailableFactory
 {
-    public static IFailable Failure(Exception exc, string description)
+    public static IFailable Failure(Exception? exc, string? description)
     {
         return new Failable(exc, description);
     }
@@ -18,7 +18,7 @@ public static class FailableFactory
         return Aggregate(exceptions.Select(x => Failure(x, null)).ToArray());
     }
 
-    public static IFailable<T> Success<T>(T result, string description)
+    public static IFailable<T> Success<T>(T result, string? description)
     {
         return new Failable<T>(result, null, description);
     }
@@ -44,8 +44,8 @@ public interface IFailable
 {
     string ToStringSimple();
     string ToStringDetailed();
-    string Description { get; }
-    Exception Exception { get; }
+    string? Description { get; }
+    Exception? Exception { get; }
     bool Failed { get; }
     IEnumerable<IFailable> Flattened();
 }
@@ -60,11 +60,9 @@ public interface IFailable<out T> : IFailable
 
 public abstract class AbstractFailable : IFailable
 {
-    protected Exception _Exception;
-    public Exception Exception => _Exception;
-    protected string _Description;
-    public string Description => _Description;
-    public bool Failed => _Exception != null;
+    public Exception? Exception { get; protected set; }
+    public string? Description { get; protected set; }
+    public bool Failed => Exception != null;
     protected IFailable[] Subfailures;
     public bool IsAggregate => Subfailures.Any();
 
@@ -73,11 +71,14 @@ public abstract class AbstractFailable : IFailable
         Subfailures = Array.Empty<IFailable>();
     }
 
-    protected AbstractFailable(Exception exc, string description) : this(exc, description, Array.Empty<IFailable>()) { }
-    protected AbstractFailable(Exception exc, string description, IEnumerable<IFailable> nested)
+    protected AbstractFailable(Exception? exc, string? description) : this(exc, description, Array.Empty<IFailable>())
     {
-        _Exception = exc;
-        _Description = description;
+    }
+
+    protected AbstractFailable(Exception? exc, string? description, IEnumerable<IFailable> nested)
+    {
+        Exception = exc;
+        Description = description;
         Subfailures = nested.ToArray();
     }
 
@@ -89,14 +90,15 @@ public abstract class AbstractFailable : IFailable
             var summaries = new List<string>();
             foreach (var item in Subfailures)
             {
-                if (messages.Add(item.Exception.Message))
+                if (item.Exception != null && messages.Add(item.Exception.Message))
                     summaries.Add(item.ToStringSimple());
             }
+
             return String.Join(Environment.NewLine, summaries);
         }
         else
         {
-            if (Failed)
+            if (Exception != null)
                 return ExceptionMessage(Exception);
             else
                 return $"{Description}: Operation succeeded";
@@ -106,7 +108,8 @@ public abstract class AbstractFailable : IFailable
     public string ToStringDetailed()
     {
         if (IsAggregate)
-            return String.Join(Environment.NewLine + Environment.NewLine, Subfailures.Select(x => x.ToStringDetailed()));
+            return String.Join(Environment.NewLine + Environment.NewLine,
+                Subfailures.Select(x => x.ToStringDetailed()));
         else
         {
             if (Failed)
@@ -130,7 +133,8 @@ public abstract class AbstractFailable : IFailable
         {
             if (aggregate.InnerExceptions.Count == 1)
                 return ExceptionMessage(aggregate.InnerExceptions[0]);
-            message += Environment.NewLine + String.Join(Environment.NewLine, aggregate.InnerExceptions.Select(ExceptionMessage));
+            message += Environment.NewLine +
+                       String.Join(Environment.NewLine, aggregate.InnerExceptions.Select(ExceptionMessage));
         }
         else
         {
@@ -139,34 +143,49 @@ public abstract class AbstractFailable : IFailable
                 using var reader = new StreamReader(web.Response.GetResponseStream());
                 message += Environment.NewLine + reader.ReadToEnd();
             }
+
             if (exception.InnerException != null)
                 message += Environment.NewLine + ExceptionMessage(exception.InnerException);
         }
+
         return message;
     }
 }
 
 public class Failable : AbstractFailable
 {
-    public Failable(Action operation, string description)
+    public Failable(Action operation, string? description)
     {
-        _Description = description;
-        try { operation(); }
-        catch (Exception ex) { _Exception = ex; }
+        Description = description;
+        try
+        {
+            operation();
+        }
+        catch (Exception ex)
+        {
+            Exception = ex;
+        }
     }
 
-    public Failable(Exception exc, string description, IEnumerable<IFailable> subfailures) : base(exc, description, subfailures) { }
-    public Failable(Exception exc, string description) : base(exc, description) { }
+    public Failable(Exception? exc, string? description, IEnumerable<IFailable> subfailures) : base(exc, description,
+        subfailures)
+    {
+    }
+
+    public Failable(Exception? exc, string? description) : base(exc, description)
+    {
+    }
 }
 
 public class Failable<T> : AbstractFailable, IFailable<T>
 {
     private readonly T _Result;
+
     public T Result
     {
         get
         {
-            if (Failed)
+            if (Exception != null)
                 throw Exception;
             return _Result;
         }
@@ -182,24 +201,30 @@ public class Failable<T> : AbstractFailable, IFailable<T>
     public IFailable<U> Cast<U>()
     {
         var result = this.Failed ? default : (U)(object)this.Result;
-        return new Failable<U>(result, this.Exception, this.Description, this.Subfailures.Cast<IFailable<T>>().Select(x => x.Cast<U>()));
+        return new Failable<U>(result, this.Exception, this.Description,
+            this.Subfailures.Cast<IFailable<T>>().Select(x => x.Cast<U>()));
     }
 
-    public Failable(Func<T> operation, string description)
+    public Failable(Func<T> operation, string? description)
     {
-        _Description = description;
+        Description = description;
         try
-        { _Result = operation(); }
+        {
+            _Result = operation();
+        }
         catch (Exception ex)
-        { _Exception = ex; }
+        {
+            Exception = ex;
+        }
     }
 
-    public Failable(T result, Exception exc, string description, IEnumerable<IFailable<T>> subfailures) : base(exc, description, subfailures)
+    public Failable(T result, Exception? exc, string? description, IEnumerable<IFailable<T>> subfailures) : base(exc,
+        description, subfailures)
     {
         _Result = result;
     }
 
-    public Failable(T result, Exception exc, string description) : base(exc, description)
+    public Failable(T result, Exception? exc, string? description) : base(exc, description)
     {
         _Result = result;
     }

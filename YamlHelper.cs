@@ -8,7 +8,7 @@ namespace TryashtarUtils.Utility;
 
 public static class YamlHelper
 {
-    public static YamlNode ParseFile(string file_path)
+    public static YamlNode? ParseFile(string file_path)
     {
         try
         {
@@ -29,68 +29,63 @@ public static class YamlHelper
     {
         var doc = new YamlDocument(node);
         var stream = new YamlStream(doc);
-        string dir = Path.GetDirectoryName(file_path);
+        string? dir = Path.GetDirectoryName(file_path);
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
         using var writer = File.CreateText(file_path);
         stream.Save(writer, false);
     }
 
-    public static List<OutType> ToList<OutType>(this YamlNode node, Func<YamlNode, YamlNode, OutType> getter)
+    public static List<T>? ToList<T>(this YamlNode? node, Func<YamlNode, YamlNode, T> getter)
     {
-        if (node == null)
-            return null;
-        return ((YamlMappingNode)node).Children.Select(x => getter(x.Key, x.Value)).ToList();
+        return ((YamlMappingNode?)node)?.Children.Select(x => getter(x.Key, x.Value)).ToList();
     }
 
-    public static List<OutType> ToList<OutType>(this YamlNode node, Func<YamlNode, OutType> getter)
+    public static List<T>? ToList<T>(this YamlNode? node, Func<YamlNode, T> getter)
     {
-        if (node == null)
-            return null;
-        return ((YamlSequenceNode)node).Children.Select(x => getter(x)).ToList();
+        return ((YamlSequenceNode?)node)?.Children.Select(getter).ToList();
     }
 
-    public static List<OutType> ToListFromStrings<OutType>(this YamlNode node, Func<string, OutType> getter)
+    public static List<T>? ToListFromStrings<T>(this YamlNode? node, Func<string?, T> getter)
     {
-        return ToList(node, (YamlNode x) => getter(x.String()));
+        return ToList(node, x => getter(x.String()));
     }
 
-    public static List<string> ToStringList(this YamlNode node)
+    public static List<string>? ToStringList(this YamlNode? node)
     {
-        return ToListFromStrings(node, x => x);
+        return ToListFromStrings(node, x => x!);
     }
 
-    public static Dictionary<string, string> ToDictionary(this YamlNode node)
+    public static Dictionary<string, string>? ToDictionary(this YamlNode? node)
     {
         return ToDictionary(node, x => x.String());
     }
 
-    public static Dictionary<string, OutType> ToDictionary<OutType>(this YamlNode node, Func<YamlNode, OutType> value_getter)
+    public static Dictionary<string, TValue>? ToDictionary<TValue>(this YamlNode? node,
+        Func<YamlNode, TValue?> value_getter)
     {
         return ToDictionary(node, x => x.String(), value_getter);
     }
 
-    public static Dictionary<KeyType, ValueType> ToDictionary<KeyType, ValueType>(this YamlNode node, Func<YamlNode, KeyType> key_getter, Func<YamlNode, ValueType> value_getter)
+    public static Dictionary<TKey, TValue>? ToDictionary<TKey, TValue>(this YamlNode node,
+        Func<YamlNode, TKey> key_getter, Func<YamlNode?, TValue?> value_getter)
+        where TKey : notnull
     {
-        if (node == null)
-            return null;
-        return ((YamlMappingNode)node).Children.ToDictionary(
+        return ((YamlMappingNode?)node)?.Children.ToDictionary(
             x => key_getter(x.Key),
             x => value_getter(x.Value));
     }
 
-    public static OutType NullableParse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : class
+    public static OutType? NullableParse<OutType>(this YamlNode? node, Func<YamlNode, OutType> parser)
+        where OutType : class
     {
-        if (node == null)
-            return null;
-        return parser(node);
+        return node == null ? null : parser(node);
     }
 
-    public static OutType? NullableStructParse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : struct
+    public static OutType? NullableStructParse<OutType>(this YamlNode? node, Func<YamlNode, OutType> parser)
+        where OutType : struct
     {
-        if (node == null)
-            return null;
-        return parser(node);
+        return node == null ? null : parser(node);
     }
 
     public static OutType Parse<OutType>(this YamlNode node, Func<YamlNode, OutType> parser) where OutType : class
@@ -100,42 +95,36 @@ public static class YamlHelper
         return parser(node);
     }
 
-    public static T ToEnum<T>(this YamlNode node, T def) where T : struct, Enum
+    public static T ToEnum<T>(this YamlNode? node, T def) where T : struct, Enum
     {
-        if (node == null)
-            return def;
-        return StringUtils.ParseUnderscoredEnum<T>(node.String());
+        return node is YamlScalarNode { Value: not null } scalar
+            ? StringUtils.ParseUnderscoredEnum<T>(scalar.Value)
+            : def;
     }
 
-    public static T? ToEnum<T>(this YamlNode node) where T : struct, Enum
+    public static T? ToEnum<T>(this YamlNode? node) where T : struct, Enum
     {
-        if (node == null)
-            return null;
-        return StringUtils.ParseUnderscoredEnum<T>(node.String());
+        return node is YamlScalarNode { Value: not null } scalar
+            ? StringUtils.ParseUnderscoredEnum<T>(scalar.Value)
+            : null;
     }
 
-    public static string String(this YamlNode node)
+    public static string? String(this YamlNode? node)
     {
-        if (node is not YamlScalarNode scalar)
-            return null;
-        return scalar.Value;
+        return node is YamlScalarNode scalar ? scalar.Value : null;
     }
 
-    public static int? Int(this YamlNode node)
+    public static int? Int(this YamlNode? node)
     {
-        if (node is not YamlScalarNode scalar)
-            return null;
-        return int.Parse(scalar.Value);
-    }
-        
-    public static bool? Bool(this YamlNode node)
-    {
-        if (node is not YamlScalarNode scalar)
-            return null;
-        return bool.Parse(scalar.Value);
+        return node is YamlScalarNode { Value: not null } scalar ? int.Parse(scalar.Value) : null;
     }
 
-    public static YamlNode Go(this YamlNode node, params string[] path)
+    public static bool? Bool(this YamlNode? node)
+    {
+        return node is YamlScalarNode { Value: not null } scalar ? bool.Parse(scalar.Value) : null;
+    }
+
+    public static YamlNode? Go(this YamlNode? node, params string[] path)
     {
         if (node == null)
             return null;
@@ -145,10 +134,11 @@ public static class YamlHelper
             if (node == null)
                 return null;
         }
+
         return node;
     }
 
-    public static YamlNode TryGet(this YamlNode node, string key)
+    public static YamlNode? TryGet(this YamlNode node, string key)
     {
         if (node is YamlMappingNode map && map.Children.TryGetValue(key, out var result))
             return result;

@@ -31,10 +31,10 @@ public class FilePath : IEquatable<FilePath>
         Location = "";
         IsRelative = true;
         ComparisonLocation = "";
-        Pieces = new string[0];
+        Pieces = Array.Empty<string>();
     }
 
-    public string FileName => Pieces[Pieces.Length - 1];
+    public string FileName => Pieces[^1];
 
     public FilePath Rooted()
     {
@@ -52,9 +52,10 @@ public class FilePath : IEquatable<FilePath>
         return CombineWith(path);
     }
 
-    public FilePath ParentDirectory()
+    public FilePath? ParentDirectory()
     {
-        return new FilePath(Path.GetDirectoryName(this.Location));
+        string? parent = Path.GetDirectoryName(this.Location);
+        return parent == null ? null : new FilePath(parent);
     }
 
     public bool StartsWith(FilePath prefix)
@@ -69,14 +70,14 @@ public class FilePath : IEquatable<FilePath>
         return true;
     }
 
-    public bool Equals(FilePath obj)
+    public bool Equals(FilePath? obj)
     {
-        if (obj == null)
+        if (obj is null)
             return false;
         return ComparisonLocation == obj.ComparisonLocation;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is string s)
             return Equals(new FilePath(s));
@@ -97,10 +98,10 @@ public class FilePath : IEquatable<FilePath>
         return new FilePath(input);
     }
 
-    public static bool operator ==(FilePath p1, FilePath p2)
+    public static bool operator ==(FilePath? p1, FilePath? p2)
     {
-        if ((object)p1 == null)
-            return (object)p2 == null;
+        if (p1 is null)
+            return p2 is null;
         return p1.Equals(p2);
     }
     public static bool operator !=(FilePath p1, FilePath p2) => !(p1 == p2);
