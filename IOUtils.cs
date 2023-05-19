@@ -136,7 +136,7 @@ public static class IOUtils
             {
                 string relative = item.FullName[entryName.Length..];
                 string file = Path.Combine(destName, relative);
-                string parent = Path.GetDirectoryName(file);
+                string? parent = Path.GetDirectoryName(file);
                 if (parent != null)
                     Directory.CreateDirectory(parent);
                 item.ExtractToFile(file, overwriteFiles);

@@ -58,17 +58,17 @@ public static class YamlHelper
 
     public static Dictionary<string, string>? ToDictionary(this YamlNode? node)
     {
-        return ToDictionary(node, x => x.String());
+        return ToDictionary(node, x => x.String()!);
     }
 
     public static Dictionary<string, TValue>? ToDictionary<TValue>(this YamlNode? node,
-        Func<YamlNode, TValue?> value_getter)
+        Func<YamlNode, TValue> value_getter)
     {
-        return ToDictionary(node, x => x.String(), value_getter);
+        return ToDictionary(node, x => x.String()!, value_getter);
     }
 
-    public static Dictionary<TKey, TValue>? ToDictionary<TKey, TValue>(this YamlNode node,
-        Func<YamlNode, TKey> key_getter, Func<YamlNode?, TValue?> value_getter)
+    public static Dictionary<TKey, TValue>? ToDictionary<TKey, TValue>(this YamlNode? node,
+        Func<YamlNode, TKey> key_getter, Func<YamlNode, TValue> value_getter)
         where TKey : notnull
     {
         return ((YamlMappingNode?)node)?.Children.ToDictionary(
